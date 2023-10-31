@@ -1,5 +1,7 @@
 import socket
 import time
+import json
+import struct
 
 # Create a TCP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -14,25 +16,27 @@ connection, client_address = sock.accept()
 print("Connected to:", client_address)
 
 f=True
-p=connection.recv(1024).decode()
-d={"2":True,"5":True,"7":True}
+d=json.loads(connection.recv(8192).decode())
+p=struct.unpack('!i', connection.recv(4))[0]
+print(d)
 time.sleep(1)
 b=-1
 while True:
-    a=connection.recv(1).decode()
-    if a=="$":
+    a=struct.unpack('!i', connection.recv(4))[0]
+    x=str(a)
+    if a==-2:
         break
-    if a in d.keys() and d[a]:
-        d[a]=False
+    if x in d.keys() and d[x]:
+        d[x]=False
     else:
-        print("Packet "+a+" received")
+        print("Packet ",a," received")
         time.sleep(1)
-        if int(a)-1==b:
-            b=int(a)
-            connection.send(str.encode(a))
-            print("Acknowledgement "+a+" sent")
+        if a-1==b:
+            b=a
+            connection.send(struct.pack("!i",a))
+            print("Acknowledgement ",a," sent")
         else:
-            connection.send(str.encode(str(b)))
+            connection.send(struct.pack("!i",b))
             print("Acknowledgement ",b," sent")
 
     time.sleep(1)
